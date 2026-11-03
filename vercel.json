@@ -1,0 +1,38 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "services": {
+    "app": {
+      "root": ".",
+      "framework": "vite"
+    },
+    "portfolio-studio": {
+      "root": "portfolio-studio",
+      "framework": "sanity"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/sanity-cdn/(.*)",
+      "destination": "https://cdn.sanity.io/$1"
+    },
+    {
+      "source": "/studio/(.*)",
+      "destination": {
+        "service": "portfolio-studio"
+      }
+    },
+    {
+      "source": "/studio",
+      "destination": {
+        "service": "portfolio-studio"
+      }
+    },
+    {
+      "source": "/(.*)",
+      "destination": {
+        "service": "app"
+      }
+    }
+  ]
+}
+

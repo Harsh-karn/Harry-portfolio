@@ -103,9 +103,6 @@ const InspectableFrame = ({ frame, wallX, frameTexture, framePaintedTexture, CAB
     const { playPaper } = useAudio();
     const groupRef = useRef();
     const frameMaterialRef = useRef();
-    const framePaintedRef = useRef();
-    const compileFramesRef = useRef(0);
-    const hideDelayRef = useRef();
 
     // Save original position and rotation on the wall
     const originalPos = useMemo(() => new THREE.Vector3(
@@ -121,10 +118,28 @@ const InspectableFrame = ({ frame, wallX, frameTexture, framePaintedTexture, CAB
     const [isHovered, setIsHovered] = useState(false);
     const [isInspected, setIsInspected] = useState(false);
 
-    // Check if touch device (phone/tablet) to completely disable hover effect and boost performance
-    const isTouch = useMemo(() => isTouchDevice(), []);
-    // Also keep fallback mechanism to disconnect inspect on extremely narrow screens
-    const isMobile = viewport.width < 5 || viewport.aspect < 0.8 || isTouch;
+    // Global click listener: when a frame is inspected, clicking anywhere closes it
+    useEffect(() => {
+        if (!isInspected) return;
+
+        const handleDismiss = (e) => {
+            setIsInspected(false);
+            if (setCameraOverride) setCameraOverride(false);
+            window.dispatchEvent(new CustomEvent('inspectChange', { detail: false }));
+            playPaper(0.85);
+        };
+
+        const timer = setTimeout(() => {
+            window.addEventListener('click', handleDismiss);
+            window.addEventListener('pointerdown', handleDismiss);
+        }, 120);
+
+        return () => {
+            clearTimeout(timer);
+            window.removeEventListener('click', handleDismiss);
+            window.removeEventListener('pointerdown', handleDismiss);
+        };
+    }, [isInspected, setCameraOverride, playPaper]);
 
     // When component unmounts, disable override just in case
     useEffect(() => {
@@ -137,9 +152,9 @@ const InspectableFrame = ({ frame, wallX, frameTexture, framePaintedTexture, CAB
     }, [isInspected, setCameraOverride]);
 
     useEffect(() => {
-        if (isHovered && !isMobile) document.body.style.cursor = 'pointer';
+        if (isHovered) document.body.style.cursor = 'pointer';
         else document.body.style.cursor = 'auto';
-    }, [isHovered, isMobile]);
+    }, [isHovered]);
 
     useEffect(() => {
         if (!frameMaterialRef.current) return;
@@ -147,9 +162,6 @@ const InspectableFrame = ({ frame, wallX, frameTexture, framePaintedTexture, CAB
         const shouldBePainted = isHovered || isInspected;
 
         if (shouldBePainted) {
-            if (hideDelayRef.current) hideDelayRef.current.kill();
-            if (framePaintedRef.current) framePaintedRef.current.visible = true;
-
             gsap.to(frameMaterialRef.current, {
                 uProgress: 1.0,
                 duration: 0.8,
@@ -163,46 +175,23 @@ const InspectableFrame = ({ frame, wallX, frameTexture, framePaintedTexture, CAB
                 ease: 'power2.out',
                 overwrite: true
             });
-
-            hideDelayRef.current = gsap.delayedCall(0.55, () => {
-                if (framePaintedRef.current) framePaintedRef.current.visible = false;
-            });
         }
-
-        return () => {
-            if (hideDelayRef.current) hideDelayRef.current.kill();
-        };
     }, [isHovered, isInspected]);
 
     useFrame((state, delta) => {
         if (!groupRef.current) return;
-
-        if (compileFramesRef.current < 2) {
-            compileFramesRef.current++;
-            if (compileFramesRef.current === 2) {
-                if (!isHovered && !isInspected && framePaintedRef.current) {
-                    framePaintedRef.current.visible = false;
-                }
-            }
-        }
 
         if (isInspected) {
             // Position in front of camera (closer)
             camera.getWorldDirection(tempCamDir);
 
             // Calculate fluid responsive distance
-            // When aspect ratio (width/height) is smaller (narrow screens e.g. laptops max 1.3), push image further away (e.g. 2.2)
-            // When aspect ratio is large (ultrawide, 16:9 ~ 1.77), bring image closer (e.g. 1.5)
-            // clamp(1.5, 2.8)
             const baseDistance = 1.3;
-            // The smaller the aspect ratio (narrower screen), the greater the distance
-            const aspectOffset = Math.max(0, 1.8 - viewport.aspect) * 1.5;
+            const aspectOffset = Math.max(0, 1.8 - (viewport.aspect || 1.6)) * 1.5;
             const distance = Math.min(2.8, Math.max(1.5, baseDistance + aspectOffset));
 
-            // Point right in front of camera (dynamically scaled - larger value = further away)
+            // Point right in front of camera
             tempPos.copy(camera.position).add(tempCamDir.multiplyScalar(distance));
-
-            // Rotation facing the image directly towards camera
             tempRot.copy(camera.quaternion);
 
             // 3D Card tilt effect based on pointer
@@ -210,20 +199,24 @@ const InspectableFrame = ({ frame, wallX, frameTexture, framePaintedTexture, CAB
             const tiltY = state.pointer.x * 0.3;
             tempEuler.set(tiltX, tiltY, 0);
             tempQuat.setFromEuler(tempEuler);
-
             tempRot.multiply(tempQuat);
 
-            // Slightly scale up image for detail
             tempScale.set(1.2, 1.2, 1.2);
         } else {
             // Return to wall
             tempPos.copy(originalPos);
             tempRot.setFromEuler(originalRot);
             tempScale.set(1, 1, 1);
+
+            // Idle optimization: if already at rest on wall, skip lerp calculations
+            if (groupRef.current.position.distanceToSquared(originalPos) < 0.00001 &&
+                groupRef.current.scale.x === 1) {
+                return;
+            }
         }
 
-        // Smooth interpolation (lerp/slerp) in every render frame
-        const factor = delta * 6;
+        // Smooth interpolation (lerp/slerp)
+        const factor = Math.min(delta * 6, 1);
         groupRef.current.position.lerp(tempPos, factor);
         groupRef.current.quaternion.slerp(tempRot, factor);
         groupRef.current.scale.lerp(tempScale, factor);
@@ -235,24 +228,23 @@ const InspectableFrame = ({ frame, wallX, frameTexture, framePaintedTexture, CAB
             position={originalPos}
             rotation={originalRot}
         >
-            {/* INVISIBLE HITBOX to catch pointer events smoothly and prevent raycaster from jumping between meshes */}
+            {/* INVISIBLE HITBOX to catch pointer events smoothly and reliably */}
             <mesh
                 position={[0, 0, 0.05]}
                 onClick={(e) => {
                     e.stopPropagation();
-                    if (isMobile) return; // Completely disable on mobile
                     setIsInspected((prev) => {
                         const next = !prev;
-                        if (setCameraOverride) setCameraOverride(next); // Lock / unlock camera movement
+                        if (setCameraOverride) setCameraOverride(next);
                         window.dispatchEvent(new CustomEvent('inspectChange', { detail: next }));
-                        playPaper(0.85); // Crisp sketchbook tactile paper sound
+                        playPaper(0.85);
                         return next;
                     });
                     setIsHovered(false);
                 }}
                 onPointerEnter={(e) => {
                     e.stopPropagation();
-                    if (!isInspected && !isMobile) {
+                    if (!isInspected) {
                         setIsHovered(true);
                     }
                 }}
@@ -265,21 +257,19 @@ const InspectableFrame = ({ frame, wallX, frameTexture, framePaintedTexture, CAB
                 <meshBasicMaterial color="#e0e0e0" transparent opacity={0} depthWrite={false} />
             </mesh>
 
-            {/* PAINTED FRAME (behind sketch) */}
-            {!isTouch && (
-                <mesh ref={framePaintedRef} position={[0, 0, -0.001]}>
-                    <planeGeometry args={[frame.width, frame.height]} />
-                    <meshBasicMaterial color="#e0e0e0"
-                        map={framePaintedTexture}
-                        transparent={true}
-                        alphaTest={0.5}
-                        side={THREE.DoubleSide}
-                        roughness={0.9}
-                    />
-                </mesh>
-            )}
+            {/* PAINTED FRAME (always mounted directly behind sketch) */}
+            <mesh position={[0, 0, -0.001]}>
+                <planeGeometry args={[frame.width, frame.height]} />
+                <meshBasicMaterial color="#e0e0e0"
+                    map={framePaintedTexture}
+                    transparent={true}
+                    alphaTest={0.5}
+                    side={THREE.DoubleSide}
+                    roughness={0.9}
+                />
+            </mesh>
 
-            {/* SKETCH FRAME OVERLAY (front) */}
+            {/* SKETCH FRAME OVERLAY (front - reveals painted frame beneath via uProgress) */}
             <mesh position={[0, 0, 0]}>
                 <planeGeometry args={[frame.width, frame.height]} />
                 <revealMaterial color="#e0e0e0"
@@ -297,7 +287,7 @@ const InspectableFrame = ({ frame, wallX, frameTexture, framePaintedTexture, CAB
             {frame.image && (
                 <PictureContent
                     imagePath={frame.image}
-                    imagePaintedPath={!isTouch ? frame.imagePainted : null}
+                    imagePaintedPath={frame.imagePainted}
                     width={frame.imageWidth || frame.width * 0.7}
                     height={frame.imageHeight || frame.height * 0.7}
                     isPainted={frame.revealOnClickOnly ? isInspected : (isHovered || isInspected)}

@@ -102,11 +102,15 @@ const StaticCloud = ({ position, scale, opacity, textureIndex, driftSpeed, initi
     const width = 2.5 * scale;
     const height = width / aspectRatio;
 
+    // Pre-calculate billboard offset quaternion once to prevent 60fps GC memory churn
+    const offsetQuaternion = useMemo(() => {
+        return new THREE.Quaternion().setFromEuler(new THREE.Euler(rotationOffset[0], rotationOffset[1], rotationOffset[2]));
+    }, [rotationOffset]);
+
     useFrame(({ camera, clock }) => {
         if (!meshRef.current) return;
 
         // Continuous linear movement from right to left with looping
-        // initialOffset ensures each cloud starts at a distinct position
         const time = clock.getElapsedTime();
         const progress = ((time * driftSpeed + initialOffset) % (totalDistance + 10)) - 5;
         const currentX = startX - progress;
@@ -115,9 +119,7 @@ const StaticCloud = ({ position, scale, opacity, textureIndex, driftSpeed, initi
         meshRef.current.position.y = basePosition.current[1];
         meshRef.current.position.z = basePosition.current[2];
 
-        // Billboard - always face camera with rotation offset
-        const offsetRotation = new THREE.Euler(rotationOffset[0], rotationOffset[1], rotationOffset[2]);
-        const offsetQuaternion = new THREE.Quaternion().setFromEuler(offsetRotation);
+        // Billboard - always face camera with rotation offset (ZERO allocations)
         meshRef.current.quaternion.copy(camera.quaternion).multiply(offsetQuaternion);
     });
 

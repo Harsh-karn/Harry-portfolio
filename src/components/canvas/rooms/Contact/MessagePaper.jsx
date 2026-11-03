@@ -1,19 +1,20 @@
 /* eslint-disable react/no-unknown-property */
-import { useRef, useState, useEffect, useMemo, useCallback } from 'react';
+import { useRef, useState, useEffect, useMemo, useCallback, memo } from 'react';
+import { createPortal } from 'react-dom';
 import { useFrame } from '@react-three/fiber';
-import { Text, useTexture, Html, useCursor } from '@react-three/drei';
+import { Text, useTexture, useCursor } from '@react-three/drei';
 import * as THREE from 'three';
 
 const PAPER_WIDTH = 1.51; // Legacy ratio 1197/1340
 const PAPER_HEIGHT = 1.7;
 const FONT_PATH = '/fonts/CabinSketch-Regular.ttf';
 
-// Helper: Interactive Text Field with Smooth Animation and Invisible Hitbox
-const InteractiveTextField = ({
+// Helper: Interactive Text Field with Smooth Animation and Invisible Hitbox (Memoized for high FPS typing)
+const InteractiveTextField = memo(({
     isActive,
     value,
     placeholder,
-    cursor,
+    cursor = '|',
 
     // Layout props
     position,
@@ -38,18 +39,22 @@ const InteractiveTextField = ({
     useCursor(hovered);
 
     // Animation targets
-    // Smooth lift (Y) and wobble (Z rotation) on hover
     const targetY = hovered ? position[1] + 0.007 : position[1];
     const targetRotZ = hovered ? baseRotation[2] + 0.015 : baseRotation[2];
 
     useFrame((state, delta) => {
-        // Smooth interpolation for "buttery" feel
-        const t = delta * 12; // Speed factor
-        if (textRef.current) {
-            textRef.current.position.y = THREE.MathUtils.lerp(textRef.current.position.y, targetY, t);
-            textRef.current.rotation.z = THREE.MathUtils.lerp(textRef.current.rotation.z, targetRotZ, t);
+        if (!textRef.current) return;
+        const curY = textRef.current.position.y;
+        const curRotZ = textRef.current.rotation.z;
+        if (Math.abs(curY - targetY) < 0.0001 && Math.abs(curRotZ - targetRotZ) < 0.0001) {
+            return;
         }
+        const t = Math.min(delta * 12, 1);
+        textRef.current.position.y = THREE.MathUtils.lerp(curY, targetY, t);
+        textRef.current.rotation.z = THREE.MathUtils.lerp(curRotZ, targetRotZ, t);
     });
+
+    const displayText = isActive ? (value ? `${value}${cursor}` : cursor) : (value || placeholder);
 
     return (
         <group
@@ -80,33 +85,33 @@ const InteractiveTextField = ({
                 textAlign={textAlign}
                 lineHeight={lineHeight}
             >
-                {isActive ? (value + cursor) : (value || placeholder)}
+                {displayText}
             </Text>
         </group>
     );
-};
+});
 
 // Helper: Smooth Animated Button
-// Helper: Smooth Animated Button
-const SmoothButton = ({ texture, onClick, position, size, text, fontPath }) => {
+const SmoothButton = memo(({ texture, onClick, position, size, text, fontPath }) => {
     const groupRef = useRef();
     const [hovered, setHovered] = useState(false);
     useCursor(hovered);
 
-    // Animation targets - match InteractiveTextField style
+    // Animation targets
     const targetY = hovered ? position[1] + 0.007 : position[1];
     const targetRotZ = hovered ? 0.015 : 0;
 
     useFrame((state, delta) => {
-        const t = delta * 12;
-        if (groupRef.current) {
-            // Lerp Y Position
-            groupRef.current.position.y = THREE.MathUtils.lerp(groupRef.current.position.y, targetY, t);
-            // Lerp Z Rotation (tilt)
-            groupRef.current.rotation.z = THREE.MathUtils.lerp(groupRef.current.rotation.z, targetRotZ, t);
-            // Reset scale in case it was modified previously
-            groupRef.current.scale.set(1, 1, 1);
+        if (!groupRef.current) return;
+        const curY = groupRef.current.position.y;
+        const curRotZ = groupRef.current.rotation.z;
+        if (Math.abs(curY - targetY) < 0.0001 && Math.abs(curRotZ - targetRotZ) < 0.0001) {
+            return;
         }
+        const t = Math.min(delta * 12, 1);
+        groupRef.current.position.y = THREE.MathUtils.lerp(curY, targetY, t);
+        groupRef.current.rotation.z = THREE.MathUtils.lerp(curRotZ, targetRotZ, t);
+        groupRef.current.scale.set(1, 1, 1);
     });
 
     return (
@@ -144,7 +149,7 @@ const SmoothButton = ({ texture, onClick, position, size, text, fontPath }) => {
             )}
         </group>
     );
-};
+});
 
 // Web3Forms API Key - loaded from environment variable or configured default.
 const WEB3FORMS_KEY = import.meta.env.VITE_WEB3FORMS_KEY || '466d1a83-242a-4715-b581-97efc35e8bc4';
@@ -306,7 +311,6 @@ const MessagePaper = ({ position = [0, 0.05, 2], onSend, onClose }) => {
     const [subject, setSubject] = useState('');
     const [message, setMessage] = useState('');
     const [activeField, setActiveField] = useState(null);
-    const [cursorVisible, setCursorVisible] = useState(true);
     const [botcheck, setBotcheck] = useState(''); // Honeypot state
     const formLoadedAt = useRef(Date.now()); // Timing trap: track when form mounted
 
@@ -340,15 +344,6 @@ const MessagePaper = ({ position = [0, 0.05, 2], onSend, onClose }) => {
         if (buttonTexture) buttonTexture.colorSpace = THREE.SRGBColorSpace;
     }, [paperTexture, buttonTexture]);
 
-    // Cursor blink effect
-    useEffect(() => {
-        if (!activeField) {
-            setCursorVisible(false);
-            return;
-        }
-        const interval = setInterval(() => setCursorVisible(prev => !prev), 530);
-        return () => clearInterval(interval);
-    }, [activeField]);
 
     // General paper click handler (background click)
     const handlePaperClick = useCallback((e) => {
@@ -528,14 +523,17 @@ const MessagePaper = ({ position = [0, 0.05, 2], onSend, onClose }) => {
 
     return (
         <group ref={groupRef} position={position}>
-            {/* Hidden HTML inputs for physical/virtual keyboard accessibility */}
-            <Html position={[0, 0, 0]} style={{ position: 'fixed', left: '-9999px', top: '-9999px', opacity: 0, pointerEvents: 'none' }}>
-                <input ref={nameInputRef} type="text" value={name} onChange={handleNameInput} onBlur={handleBlur} aria-label="Name" style={{ pointerEvents: 'auto' }} />
-                <input ref={emailInputRef} type="email" value={email} onChange={handleEmailInput} onBlur={handleBlur} aria-label="Email" style={{ pointerEvents: 'auto' }} />
-                <input ref={subjectInputRef} type="text" value={subject} onChange={handleSubjectInput} onBlur={handleBlur} aria-label="Subject" style={{ pointerEvents: 'auto' }} />
-                <textarea ref={hiddenInputRef} value={message} onChange={handleMessageInput} onBlur={handleBlur} aria-label="Message" style={{ pointerEvents: 'auto' }} />
-                <input type="checkbox" name="botcheck" checked={botcheck} onChange={handleBotcheckInput} style={{ pointerEvents: 'auto' }} />
-            </Html>
+            {/* Hidden HTML inputs for physical/virtual keyboard accessibility (rendered offscreen in DOM without 3D camera projection overhead) */}
+            {typeof document !== 'undefined' && createPortal(
+                <div style={{ position: 'fixed', left: '-9999px', top: '-9999px', opacity: 0, pointerEvents: 'none' }}>
+                    <input ref={nameInputRef} type="text" value={name} onChange={handleNameInput} onBlur={handleBlur} aria-label="Name" style={{ pointerEvents: 'auto' }} />
+                    <input ref={emailInputRef} type="email" value={email} onChange={handleEmailInput} onBlur={handleBlur} aria-label="Email" style={{ pointerEvents: 'auto' }} />
+                    <input ref={subjectInputRef} type="text" value={subject} onChange={handleSubjectInput} onBlur={handleBlur} aria-label="Subject" style={{ pointerEvents: 'auto' }} />
+                    <textarea ref={hiddenInputRef} value={message} onChange={handleMessageInput} onBlur={handleBlur} aria-label="Message" style={{ pointerEvents: 'auto' }} />
+                    <input type="checkbox" name="botcheck" checked={botcheck} onChange={handleBotcheckInput} style={{ pointerEvents: 'auto' }} />
+                </div>,
+                document.body
+            )}
 
             {/* Main Paper Mesh - FRONT (with texture) */}
             <mesh ref={paperRef} rotation={[-Math.PI / 2, 0, 0]} onClick={handlePaperClick}>
@@ -593,7 +591,6 @@ const MessagePaper = ({ position = [0, 0.05, 2], onSend, onClose }) => {
                     isActive={activeField === 'name'}
                     value={name}
                     placeholder="your name..."
-                    cursor={cursorVisible ? '|' : ' '}
                     onClick={() => { setActiveField('name'); setTimeout(() => nameInputRef.current?.focus(), 10); }}
                     // Layout
                     position={[-0.56, 0.008, -0.61]}
@@ -611,7 +608,6 @@ const MessagePaper = ({ position = [0, 0.05, 2], onSend, onClose }) => {
                     isActive={activeField === 'email'}
                     value={email}
                     placeholder="your email..."
-                    cursor={cursorVisible ? '|' : ' '}
                     onClick={() => { setActiveField('email'); setTimeout(() => emailInputRef.current?.focus(), 10); }}
                     // Layout
                     position={[0.04, 0.008, -0.61]}
@@ -629,7 +625,6 @@ const MessagePaper = ({ position = [0, 0.05, 2], onSend, onClose }) => {
                     isActive={activeField === 'subject'}
                     value={subject}
                     placeholder="subject of dispatch..."
-                    cursor={cursorVisible ? '|' : ' '}
                     onClick={() => { setActiveField('subject'); setTimeout(() => subjectInputRef.current?.focus(), 10); }}
                     // Layout
                     position={[-0.56, 0.008, -0.46]}
@@ -647,7 +642,6 @@ const MessagePaper = ({ position = [0, 0.05, 2], onSend, onClose }) => {
                     isActive={activeField === 'message'}
                     value={formattedMessage}
                     placeholder="write your message here..."
-                    cursor={cursorVisible ? '|' : ' '}
                     onClick={() => { setActiveField('message'); setTimeout(() => hiddenInputRef.current?.focus(), 10); }}
                     // Layout
                     position={[-0.56, 0.008, -0.32]}

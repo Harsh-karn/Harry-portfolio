@@ -19,6 +19,7 @@ const SingleCandle = ({
 
     useFrame((state) => {
         if (!groupRef.current) return;
+        if (groupRef.current.parent && groupRef.current.parent.visible === false) return;
         const t = state.clock.elapsedTime + timeOffset;
 
         // Gentle floating hover

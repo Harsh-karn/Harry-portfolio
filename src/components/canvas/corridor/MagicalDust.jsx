@@ -95,6 +95,7 @@ const MagicalDust = ({ zOffset = 0, segmentLength = 80, count = 45 }) => {
 
     useFrame((state) => {
         if (!pointsRef.current) return;
+        if (pointsRef.current.parent && pointsRef.current.parent.visible === false) return;
         const geom = pointsRef.current.geometry;
         const posAttr = geom.attributes.position;
         const t = state.clock.elapsedTime;

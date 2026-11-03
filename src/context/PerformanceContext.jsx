@@ -11,8 +11,8 @@ export const TIERS = {
 // Settings for each tier
 const SETTINGS = {
   [TIERS.HIGH]: {
-    dpr: [1, 2], // Allow up to 2x pixel density
-    shadows: true, // Enable shadows
+    dpr: [1, 1.5], // Cap at 1.5x on high-DPI displays to prevent 4K GPU fill-rate throttling
+    shadows: false, // In 2.5D sketch art style, dynamic shadow map passes are unused
     antialias: true,
     powerPreference: "high-performance",
     physicsStep: 1 / 60,
@@ -20,8 +20,8 @@ const SETTINGS = {
     particleCount: 1.0, // 100% particles
   },
   [TIERS.MEDIUM]: {
-    dpr: [1, 1.5], // Cap at 1.5x on mobile to balance quality and GPU fillrate
-    shadows: false, // Disable shadows for better mobile performance
+    dpr: [1, 1.25], // Balanced pixel density for smooth 60fps on mobile/integrated GPUs
+    shadows: false,
     antialias: true,
     powerPreference: "default",
     physicsStep: 1 / 60,

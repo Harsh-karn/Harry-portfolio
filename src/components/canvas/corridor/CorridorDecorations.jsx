@@ -267,7 +267,7 @@ const InspectableFrame = ({ frame, wallX, frameTexture, framePaintedTexture, CAB
 
             {/* PAINTED FRAME (behind sketch) */}
             {!isTouch && (
-                <mesh ref={framePaintedRef} position={[0, 0, -0.001]} scale={[0.98, 0.98, 1]}>
+                <mesh ref={framePaintedRef} position={[0, 0, -0.001]}>
                     <planeGeometry args={[frame.width, frame.height]} />
                     <meshBasicMaterial color="#e0e0e0"
                         map={framePaintedTexture}
@@ -300,7 +300,7 @@ const InspectableFrame = ({ frame, wallX, frameTexture, framePaintedTexture, CAB
                     imagePaintedPath={!isTouch ? frame.imagePainted : null}
                     width={frame.imageWidth || frame.width * 0.7}
                     height={frame.imageHeight || frame.height * 0.7}
-                    isPainted={isHovered || isInspected}
+                    isPainted={frame.revealOnClickOnly ? isInspected : (isHovered || isInspected)}
                 />
             )}
 
@@ -532,17 +532,18 @@ const CorridorDecorations = ({ segmentLength, zOffset, corridorWidth = 4, corrid
             offsetFromWall: 0.1
         },
         {
-            z: zOffset - 44,         // Between Door 2 and Door 4 (Right wall)
+            z: zOffset - 17,         // Right wall between Door 1 and Door 2
             side: 'right',
             width: 2.5,
             height: 2.5 / 1.785,
-            y: 0.25,
+            y: 0.35,
             id: 'frame-3',
-            signature: "“The only way to do great work\nis to love what you do.”\n— Steve Jobs",
-            signatureX: 0,
-            signatureY: 0,
-            signatureSize: 0.10,
-            signatureColor: '#2b2b2b'
+            image: '/textures/corridor/gallery_sad_story_sketch.webp',
+            imagePainted: '/textures/corridor/gallery_sad_story_painted.webp',
+            revealOnClickOnly: true,
+            imageWidth: 2.15,
+            imageHeight: 1.20,
+            offsetFromWall: 0.1
         },
         {
             z: zOffset - 51,         // Opposite Door 4 (Left wall)
@@ -722,7 +723,7 @@ const CorridorDecorations = ({ segmentLength, zOffset, corridorWidth = 4, corrid
 
             {/* === CORRIDOR QUOTE PLAQUE === */}
             {/* "Somewhere between imagination and invention, magic happens." */}
-            <group position={[wallX - 0.02, 0.45, zOffset - 17]} rotation={[0, -Math.PI / 2, 0]}>
+            <group position={[wallX - 0.02, 0.30, zOffset - 44]} rotation={[0, -Math.PI / 2, 0]}>
                 <mesh position={[0, 0, -0.01]}>
                     <planeGeometry args={[2.5, 2.5 * (420 / 1024) + 0.06]} />
                     <meshBasicMaterial color="#d49b43" transparent opacity={0.15} depthWrite={false} />

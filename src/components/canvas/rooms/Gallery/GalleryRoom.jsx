@@ -408,6 +408,20 @@ const GalleryRoom = ({ showRoom, onReady, isExiting, isWarmup }) => {
         }
     };
 
+    // Close open card on Escape key
+    useEffect(() => {
+        if (selectedCard === null) return;
+
+        const handleKeyDown = (e) => {
+            if (e.key === 'Escape' && !globalIsAnimating) {
+                handleCardClick(selectedCard);
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [selectedCard, globalIsAnimating]);
+
     // Track if we've signaled ready
     const hasSignaledReady = useRef(false);
     const frameCount = useRef(0);
@@ -774,6 +788,23 @@ const GalleryRoom = ({ showRoom, onReady, isExiting, isWarmup }) => {
                             openOverlay={openOverlay}
                         />
                     ))}
+
+                    {/* Invisible full-screen backdrop click catcher when a card is open to go back */}
+                    {selectedCard !== null && (
+                        <mesh
+                            position={[0, 0, 0.25]}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                if (!globalIsAnimating && selectedCard !== null) {
+                                    handleCardClick(selectedCard);
+                                }
+                            }}
+                            onPointerDown={(e) => e.stopPropagation()}
+                        >
+                            <planeGeometry args={[100, 100]} />
+                            <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+                        </mesh>
+                    )}
                 </group>
 
                 {/* === SCENERY LAYERS === */}
@@ -1250,7 +1281,8 @@ const ProjectCard = memo(forwardRef(({
             return;
         }
         if (isSelected) {
-            // When already opened, clicking card body keeps it open for inspection
+            // When opened, clicking anywhere on the card body goes back / closes card
+            if (onClick) onClick(index);
             return;
         }
         if (onClick) onClick(index);
@@ -1258,7 +1290,7 @@ const ProjectCard = memo(forwardRef(({
 
     // Cursor change on hover
     useEffect(() => {
-        if (btnHovered && isSelected) {
+        if (isSelected) {
             document.body.style.cursor = 'pointer';
         } else if (hovered && !isSelected) {
             document.body.style.cursor = 'pointer';

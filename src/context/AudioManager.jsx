@@ -97,7 +97,9 @@ export const AudioProvider = ({ children }) => {
             'pencil': '/sounds/pencil.mp3', // Pencil sketch sound
             'whoosh': '/sounds/spell_whoosh.mp3', // Sweeping magical transition
             'baloonpoop': '/sounds/baloonpoop.mp3',
-            'balloon': '/sounds/baloonpoop.mp3'
+            'balloon': '/sounds/baloonpoop.mp3',
+            'meow': '/sounds/cat_meow.mp3',
+            'cat_meow': '/sounds/cat_meow.mp3'
         };
         const path = soundPaths[soundName] || `/sounds/${soundName}.mp3`;
 
@@ -131,6 +133,7 @@ export const AudioProvider = ({ children }) => {
         }
 
         return {
+            audio,
             stop: () => {
                 audio.pause();
                 audio.currentTime = 0;

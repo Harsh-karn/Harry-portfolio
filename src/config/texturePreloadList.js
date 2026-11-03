@@ -23,6 +23,7 @@ export const ENTRANCE_TEXTURES = [
     '/textures/entrance/sign.webp',
     // Characters/Objects
     '/textures/entrance/cat_front_body.webp',
+    '/textures/entrance/cat_front_body_meow.webp',
     '/textures/entrance/window_sketch.webp',
     '/textures/entrance/avatar_window.webp',
     '/textures/entrance/tree_sketch.webp',
@@ -91,6 +92,8 @@ export const CORRIDOR_TEXTURES = [
     '/textures/corridor/hp_hogwarts_scene_painted.webp',
     '/textures/corridor/hp_patronus_spell.webp',
     '/textures/corridor/hp_patronus_spell_painted.webp',
+    '/textures/corridor/gallery_sad_story_sketch.webp',
+    '/textures/corridor/gallery_sad_story_painted.webp',
     '/textures/corridor/rysuneknaobraz1.webp',
     '/textures/corridor/rysuneknaobrazek3.webp',
     // DoorSection extras

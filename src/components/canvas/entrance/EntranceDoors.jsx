@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect, useCallback } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { Text, useTexture } from '@react-three/drei';
 import * as THREE from 'three';
@@ -44,7 +44,8 @@ const EntranceDoors = ({
     const windowAvatarRef = useRef();
     const { camera } = useThree();
     const { unlockAchievement } = useAchievements();
-    const { playDoorCreak, playDoorOpen } = useAudio();
+    const { play, playDoorCreak, playDoorOpen } = useAudio();
+    const lastCatMeowRef = useRef(0);
 
     const [isMobile, setIsMobile] = useState(false);
 
@@ -76,6 +77,7 @@ const EntranceDoors = ({
     const stonePathTexture = useTexture('/textures/entrance/stone-path.webp');
     // const catTexture = useTexture('/textures/entrance/cat_sketch.webp'); // Old side cat
     const catFrontBodyTexture = useTexture('/textures/entrance/cat_front_body.webp');
+    const catFrontMeowTexture = useTexture('/textures/entrance/cat_front_body_meow.webp');
     const windowSketchTexture = useTexture('/textures/entrance/window_sketch.webp');
     const avatarWindowTexture = useTexture('/textures/entrance/avatar_window.webp');
     const treeTexture = useTexture('/textures/entrance/tree_sketch.webp');
@@ -91,6 +93,9 @@ const EntranceDoors = ({
     const leftPupilRef = useRef();
     const rightPupilRef = useRef();
     const catGroupRef = useRef(); // To get world position for tracking
+    const catBodyMaterialRef = useRef();
+    const catMouthTweensRef = useRef([]);
+    const [isCatMeowing, setIsCatMeowing] = useState(false);
     const bugRef = useRef();
 
     // Bug Click Animation State
@@ -555,6 +560,53 @@ const EntranceDoors = ({
         rightPupilRef.current.position.x = THREE.MathUtils.lerp(rightPupilRef.current.position.x, 0.043 + targetX, 0.1);
         rightPupilRef.current.position.y = THREE.MathUtils.lerp(rightPupilRef.current.position.y, 0.28 + targetY, 0.1);
     });
+
+    // --- Cat Hover & Click Interaction ---
+    const handleCatPointerOver = useCallback((e) => {
+        if (e && e.stopPropagation) e.stopPropagation();
+        document.body.style.cursor = 'pointer';
+    }, []);
+
+    const handleCatPointerOut = useCallback(() => {
+        document.body.style.cursor = 'auto';
+    }, []);
+
+    const handleCatClick = useCallback((e) => {
+        if (e && e.stopPropagation) e.stopPropagation();
+        const now = performance.now();
+        if (now - lastCatMeowRef.current < 1200) return;
+        lastCatMeowRef.current = now;
+
+        // Play meow sound
+        play('meow', { volume: 0.85 });
+
+        // Playful squash and stretch bounce
+        if (catGroupRef.current) {
+            gsap.killTweensOf(catGroupRef.current.scale);
+            gsap.timeline()
+                .to(catGroupRef.current.scale, { y: 0.93, x: 1.05, duration: 0.12, ease: 'power2.out' })
+                .to(catGroupRef.current.scale, { y: 1.07, x: 0.96, duration: 0.22, ease: 'back.out(2)' })
+                .to(catGroupRef.current.scale, { y: 1.0, x: 1.0, duration: 0.22, ease: 'power2.out' });
+        }
+
+        // Clean syllable-synced mouth articulation (using exact hand-drawn sketch art)
+        catMouthTweensRef.current.forEach(t => t && t.kill());
+        catMouthTweensRef.current = [];
+
+        const setMouth = (open) => {
+            if (catBodyMaterialRef.current) {
+                catBodyMaterialRef.current.map = open ? catFrontMeowTexture : catFrontBodyTexture;
+                catBodyMaterialRef.current.needsUpdate = true;
+            }
+            setIsCatMeowing(open);
+        };
+
+        // Open mouth clearly on meow sound
+        setMouth(true);
+
+        // Keep open for the prominent vocal meow duration (850ms), then close into smile
+        catMouthTweensRef.current.push(gsap.delayedCall(0.85, () => setMouth(false)));
+    }, [play, catFrontMeowTexture, catFrontBodyTexture]);
 
     // --- Golden Snitch Flying & Fluttering Animation ---
     useFrame(({ clock }) => {
@@ -1145,10 +1197,16 @@ const EntranceDoors = ({
             {/* CAT SKETCH (Front Facing) */}
             <group position={[-1.5, floorY + 0.6, 0.8]} ref={catGroupRef}>
                 {/* Body */}
-                <mesh>
+                <mesh
+                    onPointerOver={handleCatPointerOver}
+                    onPointerOut={handleCatPointerOut}
+                    onClick={handleCatClick}
+                >
                     <planeGeometry args={[1.5, 1.5]} />
-                    <meshBasicMaterial color="#e0e0e0"
-                        map={catFrontBodyTexture}
+                    <meshBasicMaterial
+                        ref={catBodyMaterialRef}
+                        color="#e0e0e0"
+                        map={isCatMeowing ? catFrontMeowTexture : catFrontBodyTexture}
                         transparent={true}
                         alphaTest={0.01}
                         depthWrite={false}

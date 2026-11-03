@@ -1,0 +1,449 @@
+// ProjectCategoryBar.scss - Hand-drawn Sketch Category Filter Bar
+
+.project-category-bar-wrapper {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 90;
+    max-width: 95vw;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    pointer-events: auto;
+    font-family: 'Cabin Sketch', cursive, sans-serif;
+    animation: fadeInArchiveBar 0.5s ease forwards;
+    transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.35s ease;
+
+    &.is-card-active {
+        .project-category-bar {
+            transform: translateY(18px);
+            opacity: 0.35;
+            transition: all 0.3s ease;
+
+            &:hover {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+    }
+
+    @media (max-width: 768px) {
+        bottom: 16px;
+        width: calc(100vw - 20px);
+    }
+}
+
+.active-card-quick-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    background: #fbf7ee;
+    border: 2px solid #241e17;
+    border-radius: 8px;
+    padding: 0.45rem 0.85rem;
+    box-shadow: 4px 4px 0px rgba(36, 30, 23, 0.25);
+    margin-bottom: 8px;
+    animation: slideUpQuickBar 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    background-image: radial-gradient(rgba(140, 123, 100, 0.08) 1px, transparent 0);
+    background-size: 10px 10px;
+    max-width: 95vw;
+    box-sizing: border-box;
+
+    @media (max-width: 768px) {
+        flex-direction: column;
+        gap: 0.4rem;
+        padding: 0.4rem 0.6rem;
+    }
+
+    .active-card-meta {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+
+        .active-badge {
+            background: #833c46;
+            color: #fdf8ea;
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 0.15rem 0.45rem;
+            border-radius: 3px;
+            letter-spacing: 0.5px;
+        }
+
+        .active-name {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #241e17;
+            letter-spacing: 0.5px;
+            max-width: 260px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+
+            @media (max-width: 768px) {
+                max-width: 200px;
+            }
+        }
+    }
+
+    .active-card-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+
+        .active-action-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.3rem;
+            font-family: 'Cabin Sketch', cursive, sans-serif;
+            font-size: 0.9rem;
+            font-weight: 700;
+            padding: 0.35rem 0.8rem;
+            border-radius: 5px;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+
+            &.live {
+                background: #b87e28;
+                color: #ffffff;
+                border: 1.5px solid #241e17;
+                box-shadow: 2px 2px 0px rgba(36, 30, 23, 0.2);
+
+                &:hover {
+                    background: #9d671b;
+                    transform: translateY(-2px);
+                    box-shadow: 3px 3px 0px rgba(36, 30, 23, 0.25);
+                }
+            }
+
+            &.github {
+                background: #241e17;
+                color: #fdf8ea;
+                border: 1.5px solid #241e17;
+                box-shadow: 2px 2px 0px rgba(36, 30, 23, 0.2);
+
+                &:hover {
+                    background: #3c3227;
+                    transform: translateY(-2px);
+                    box-shadow: 3px 3px 0px rgba(36, 30, 23, 0.25);
+                }
+            }
+
+            &.dossier {
+                background: #f4ece1;
+                color: #78593a;
+                border: 1.5px dashed #78593a;
+                box-shadow: 2px 2px 0px rgba(120, 89, 58, 0.15);
+
+                &:hover {
+                    background: #ebdcc9;
+                    transform: translateY(-2px);
+                    box-shadow: 3px 3px 0px rgba(120, 89, 58, 0.25);
+                }
+            }
+        }
+    }
+}
+
+@keyframes slideUpQuickBar {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeInArchiveBar {
+    from {
+        opacity: 0;
+        transform: translate(-50%, 15px);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, 0);
+    }
+}
+
+.project-category-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    background: #fbf8f0;
+    border: 2px solid #241e17;
+    border-radius: 8px;
+    padding: 0.4rem 0.6rem;
+    box-shadow: 4px 4px 0px rgba(36, 30, 23, 0.2);
+    overflow-x: auto;
+    max-width: 100%;
+    box-sizing: border-box;
+
+    // Paper texture simulation
+    background-image: radial-gradient(rgba(140, 123, 100, 0.08) 1px, transparent 0);
+    background-size: 10px 10px;
+
+    &::-webkit-scrollbar {
+        height: 4px;
+    }
+    &::-webkit-scrollbar-thumb {
+        background: #8c7b64;
+        border-radius: 2px;
+    }
+
+    @media (max-width: 768px) {
+        gap: 0.35rem;
+        padding: 0.3rem 0.4rem;
+    }
+}
+
+.filter-realm-tag {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.3rem 0.6rem;
+    background: #241e17;
+    color: #f7f2e7;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    white-space: nowrap;
+
+    .tag-icon {
+        color: #b87e28;
+        font-size: 0.9rem;
+    }
+
+    @media (max-width: 860px) {
+        display: none; // Save horizontal room on mobile & tablet
+    }
+}
+
+.filter-pills-row {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    overflow-x: auto;
+    padding: 2px;
+
+    @media (max-width: 768px) {
+        gap: 0.3rem;
+    }
+}
+
+.category-filter-pill {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    background: #f4ece1;
+    border: 1.5px solid #241e17;
+    border-radius: 5px;
+    padding: 0.35rem 0.75rem;
+    color: #241e17;
+    font-family: 'Cabin Sketch', cursive, sans-serif;
+    font-size: 0.9rem;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+    box-shadow: 2px 2px 0px rgba(36, 30, 23, 0.1);
+
+    .pill-count {
+        font-size: 0.75rem;
+        opacity: 0.75;
+    }
+
+    &:hover {
+        background: #fdf0cd;
+        transform: translateY(-2px);
+        box-shadow: 3px 3px 0px rgba(36, 30, 23, 0.2);
+    }
+
+    &.active {
+        background: #241e17;
+        color: #fdf8ea;
+        box-shadow: 2px 2px 0px rgba(184, 126, 40, 0.4);
+
+        .pill-count {
+            color: #b87e28;
+            opacity: 1;
+        }
+
+        .pill-scribble-indicator {
+            position: absolute;
+            bottom: -5px;
+            left: 10%;
+            width: 80%;
+            height: 2px;
+            background: #b87e28;
+            border-radius: 1px;
+        }
+    }
+
+    @media (max-width: 768px) {
+        font-size: 0.8rem;
+        padding: 0.3rem 0.55rem;
+    }
+}
+
+.filter-quick-toggle {
+    display: flex;
+    align-items: center;
+
+    .quick-list-btn {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        background: #eae0cc;
+        border: 1.5px solid #8c7b64;
+        border-radius: 5px;
+        padding: 0.35rem 0.7rem;
+        font-family: 'Cabin Sketch', cursive, sans-serif;
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: #241e17;
+        cursor: pointer;
+        white-space: nowrap;
+        transition: all 0.2s ease;
+
+        &:hover, &.open {
+            background: #241e17;
+            color: #f7f2e7;
+            border-color: #241e17;
+        }
+
+        .toggle-chevron {
+            font-size: 0.7rem;
+        }
+    }
+}
+
+.quick-catalog-dropdown {
+    position: absolute;
+    bottom: 100%;
+    margin-bottom: 8px;
+    background: #fdf8ea;
+    border: 2px solid #241e17;
+    border-radius: 8px;
+    padding: 0.8rem;
+    width: 480px;
+    max-width: 90vw;
+    box-shadow: 6px 6px 0px rgba(36, 30, 23, 0.25);
+    animation: popUpCatalog 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+
+    .catalog-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.85rem;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        color: #6d5d4d;
+        border-bottom: 1px dashed #8c7b64;
+        padding-bottom: 0.4rem;
+        margin-bottom: 0.6rem;
+
+        .catalog-close {
+            background: transparent;
+            border: none;
+            color: #241e17;
+            font-size: 0.9rem;
+            font-weight: 700;
+            cursor: pointer;
+            padding: 0.2rem 0.4rem;
+        }
+    }
+
+    .catalog-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.4rem;
+        max-height: 260px;
+        overflow-y: auto;
+        padding-right: 0.3rem;
+
+        @media (max-width: 600px) {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .catalog-item-btn {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: #f4ece1;
+        border: 1.2px solid #8c7b64;
+        border-radius: 4px;
+        padding: 0.35rem 0.5rem;
+        text-align: left;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        font-family: 'Cabin Sketch', cursive, sans-serif;
+
+        .item-num {
+            background: #241e17;
+            color: #f7f2e7;
+            font-size: 0.75rem;
+            padding: 0.1rem 0.35rem;
+            border-radius: 3px;
+            font-weight: 700;
+        }
+
+        .item-info {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            min-width: 0;
+
+            .item-name {
+                font-size: 0.85rem;
+                font-weight: 700;
+                color: #241e17;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+
+            .item-sub {
+                font-size: 0.7rem;
+                color: #7b6955;
+            }
+        }
+
+        .featured-dot {
+            color: #b87e28;
+            font-size: 0.9rem;
+        }
+
+        .live-dot {
+            color: #2d6a4f;
+            font-size: 0.9rem;
+        }
+
+        &:hover {
+            background: #fdf0cd;
+            border-color: #241e17;
+            transform: translateY(-1px);
+        }
+    }
+}
+
+@keyframes popUpCatalog {
+    from {
+        opacity: 0;
+        transform: translateY(10px) scale(0.97);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+

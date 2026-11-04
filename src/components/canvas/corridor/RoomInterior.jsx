@@ -42,7 +42,7 @@ const NATURAL_TILE_W = (1582 / 94) * 0.15;
  * Memoized room geometry to prevent re-renders and improve performance.
  * Contains corridor + giant room at the end.
  */
-const RoomInterior = memo(({ label, showRoom, onReady, isExiting }) => {
+const RoomInterior = memo(({ label, showRoom, onReady, isExiting, isWarmup }) => {
     const { corridorWidth, corridorHeight, corridorDepth, roomWidth, roomHeight, roomDepth } = ROOM_CONFIG;
     const halfDepth = corridorDepth / 2;
     const roomZ = -corridorDepth - roomDepth / 2;
@@ -228,7 +228,7 @@ const RoomInterior = memo(({ label, showRoom, onReady, isExiting }) => {
                         // === NEW CONTACT ROOM (SAY HI) ===
                         <group position={[0, -0.5, -corridorDepth]}>
                             <Suspense fallback={null}>
-                                <ContactRoom showRoom={showRoom} onReady={onReady} isExiting={isExiting} />
+                                <ContactRoom showRoom={showRoom} onReady={onReady} isExiting={isExiting} isWarmup={isWarmup} />
                             </Suspense>
                         </group>
                     ) : isWispr ? (

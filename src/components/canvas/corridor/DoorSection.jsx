@@ -146,8 +146,18 @@ const DoorSection = ({
         // We assume teleport always goes to segment 0
         const isSegment0 = segmentIndex === 0;
 
-        if (pendingDoorClick && pendingDoorClick === doorId && isSegment0 && !isOpen && !isAnimating) {
-            handleClick({ stopPropagation: () => { }, isTeleport: true }); // Trigger click simulation with TELEPORT flag
+        if (pendingDoorClick && pendingDoorClick === doorId && isSegment0 && !isOpen) {
+            if (!isAnimating) {
+                handleClick({ stopPropagation: () => { }, isTeleport: true }); // Trigger click simulation with TELEPORT flag
+            } else {
+                // Retry after a short delay in case previous animation is finishing
+                const retryTimer = setTimeout(() => {
+                    if (!isOpen && !isAnimating) {
+                        handleClick({ stopPropagation: () => { }, isTeleport: true });
+                    }
+                }, 300);
+                return () => clearTimeout(retryTimer);
+            }
         }
     }, [pendingDoorClick, doorId, segmentIndex, isOpen, isAnimating]);
 
@@ -482,7 +492,8 @@ const DoorSection = ({
         // Eagerly pre-render the room in parallel as camera begins alignment!
         setShouldRenderRoom(true);
 
-        // Fallback: If room doesn't call onReady within 1200ms, open door anyway
+        // Fallback: If room doesn't call onReady within 3000ms, open door anyway
+        // (Contact room loads 10+ textures on first visit; give it ample time before cache is warm)
         if (loadTimeoutRef.current) clearTimeout(loadTimeoutRef.current);
         loadTimeoutRef.current = setTimeout(() => {
             if (!roomReadyRef.current) {
@@ -493,7 +504,7 @@ const DoorSection = ({
                     openDoor(useFastMode);
                 }
             }
-        }, 1200);
+        }, 3000);
 
         // Get door world position
         const doorWorldPos = new THREE.Vector3();
@@ -1246,6 +1257,7 @@ const DoorSection = ({
                         showRoom={shouldRenderRoom}
                         onReady={handleRoomReady}
                         isExiting={isInsideRoom && isAnimating}
+                        isWarmup={false}
                     />
 
                     {/* === DOOR PANEL (pivots for opening) === */}

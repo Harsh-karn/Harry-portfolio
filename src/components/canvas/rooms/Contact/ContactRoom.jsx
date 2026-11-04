@@ -144,6 +144,32 @@ const ContactRoom = ({ showRoom, onReady, isExiting, isWarmup }) => {
         }
     }, [effectiveVolume]);
 
+    // Safe autoplay: resume AudioContext if suspended (browser policy blocks autoplay until user gesture)
+    // The user has already clicked the door to enter, so resuming is safe here.
+    useEffect(() => {
+        if (!showRoom || isWarmup) return;
+        const tryPlay = async () => {
+            try {
+                const audio = audioRef.current;
+                if (!audio) return;
+                // Drei PositionalAudio wraps a THREE.PositionalAudio with an AudioContext on listener
+                const ctx = audio?.listener?.context || audio?.context;
+                if (ctx && ctx.state === 'suspended') {
+                    await ctx.resume();
+                }
+                // Manually start playback if not already playing
+                if (audio && !audio.isPlaying) {
+                    audio.play();
+                }
+            } catch {
+                // AudioContext resume/play failed silently — sea ambience just won't play
+            }
+        };
+        // Slight delay to ensure AudioRef is attached after mount
+        const timer = setTimeout(tryPlay, 200);
+        return () => clearTimeout(timer);
+    }, [showRoom, isWarmup]);
+
     useEffect(() => {
         if (isExiting || isTeleporting) {
             hidePopup();
@@ -487,11 +513,10 @@ const ContactRoom = ({ showRoom, onReady, isExiting, isWarmup }) => {
                     refDistance={AUDIO_SETTINGS.distance}
                     rolloffFactor={AUDIO_SETTINGS.rolloff}
                     loop
-                    autoplay
+                    autoplay={false}
                     volume={effectiveVolume}
                 />
             )}
-
             {/* ☁️ CLOUDS */}
             <GalleryClouds count={45} seed={88} rotationOffset={[0, 1, 0]} />
 

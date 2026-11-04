@@ -1,8 +1,7 @@
 /* eslint-disable react/no-unknown-property */
 import { useRef, useState, useEffect, useMemo, useCallback, memo } from 'react';
-import { createPortal } from 'react-dom';
 import { useFrame } from '@react-three/fiber';
-import { Text, useTexture, useCursor } from '@react-three/drei';
+import { Text, useTexture, useCursor, Html } from '@react-three/drei';
 import * as THREE from 'three';
 
 const PAPER_WIDTH = 1.51; // Legacy ratio 1197/1340
@@ -523,17 +522,14 @@ const MessagePaper = ({ position = [0, 0.05, 2], onSend, onClose }) => {
 
     return (
         <group ref={groupRef} position={position}>
-            {/* Hidden HTML inputs for physical/virtual keyboard accessibility (rendered offscreen in DOM without 3D camera projection overhead) */}
-            {typeof document !== 'undefined' && createPortal(
-                <div style={{ position: 'fixed', left: '-9999px', top: '-9999px', opacity: 0, pointerEvents: 'none' }}>
-                    <input ref={nameInputRef} type="text" value={name} onChange={handleNameInput} onBlur={handleBlur} aria-label="Name" style={{ pointerEvents: 'auto' }} />
-                    <input ref={emailInputRef} type="email" value={email} onChange={handleEmailInput} onBlur={handleBlur} aria-label="Email" style={{ pointerEvents: 'auto' }} />
-                    <input ref={subjectInputRef} type="text" value={subject} onChange={handleSubjectInput} onBlur={handleBlur} aria-label="Subject" style={{ pointerEvents: 'auto' }} />
-                    <textarea ref={hiddenInputRef} value={message} onChange={handleMessageInput} onBlur={handleBlur} aria-label="Message" style={{ pointerEvents: 'auto' }} />
-                    <input type="checkbox" name="botcheck" checked={botcheck} onChange={handleBotcheckInput} style={{ pointerEvents: 'auto' }} />
-                </div>,
-                document.body
-            )}
+            {/* Hidden HTML inputs for physical/virtual keyboard accessibility */}
+            <Html position={[0, 0, 0]} style={{ position: 'fixed', left: '-9999px', top: '-9999px', opacity: 0, pointerEvents: 'none' }}>
+                <input ref={nameInputRef} type="text" value={name} onChange={handleNameInput} onBlur={handleBlur} aria-label="Name" style={{ pointerEvents: 'auto' }} />
+                <input ref={emailInputRef} type="email" value={email} onChange={handleEmailInput} onBlur={handleBlur} aria-label="Email" style={{ pointerEvents: 'auto' }} />
+                <input ref={subjectInputRef} type="text" value={subject} onChange={handleSubjectInput} onBlur={handleBlur} aria-label="Subject" style={{ pointerEvents: 'auto' }} />
+                <textarea ref={hiddenInputRef} value={message} onChange={handleMessageInput} onBlur={handleBlur} aria-label="Message" style={{ pointerEvents: 'auto' }} />
+                <input type="checkbox" name="botcheck" checked={botcheck} onChange={handleBotcheckInput} style={{ pointerEvents: 'auto' }} />
+            </Html>
 
             {/* Main Paper Mesh - FRONT (with texture) */}
             <mesh ref={paperRef} rotation={[-Math.PI / 2, 0, 0]} onClick={handlePaperClick}>
